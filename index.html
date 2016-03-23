@@ -39,7 +39,6 @@
 								<i class="fa fa-repeat" ng-if="!mc.interpreter.isRunning && mc.interpreter.isFinishedExecuting"></i>
 							</button>
 							<button class="btn btn-default" ng-click="mc.interpreter.step()" ng-disabled="mc.interpreter.isFinishedExecuting"><i class="fa fa-step-forward"></i></button>
-							{{mc.interpreter.delayInMS}}
 							<div style="display:inline-block;margin-top:5px" class="pull-right">
 								<b>Clock Frequency:</b> 1Hz <input style="width:100px;display:inline;top:3px;position:relative" type="range" min="1" max="1000" step="20" ng-model="mc.cpuFreq" /> 1kHz
 							</div>
@@ -73,7 +72,7 @@
 											<td>0x{{mc.interpreter.ProgramCounter || 0 | toHex | padHex}}</td>
 										</tr>
 									</table>
-									<label>Count:</label> {{mc.instructionsCount}}
+									<label>Instructions Executed:</label> {{mc.instructionsCount}}
 								</div>
 								<div class="col-sm-4">
 									<label>Input Buffer</label>
