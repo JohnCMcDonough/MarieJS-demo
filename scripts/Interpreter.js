@@ -26,7 +26,7 @@ var CompilerError = (function () {
         this.object = object;
     }
     return CompilerError;
-})();
+}());
 var MarieInterpreter = (function () {
     // Convert to objects...
     // Build Symbol Table
@@ -88,7 +88,7 @@ var MarieInterpreter = (function () {
         var map = {};
         for (var i = 0; i < instructions.length; i++) {
             if (instructions[i].label)
-                map[instructions[i].label] = i;
+                map[instructions[i].label] = i + this.org;
         }
         return map;
     };
@@ -120,15 +120,17 @@ var MarieInterpreter = (function () {
                 }
             }
         }
-        if (errors.length > 0)
+        if (errors && errors.length > 0)
             throw errors;
         return instructions;
     };
     MarieInterpreter.prototype.tokenize = function (instructions) {
         var ins = [];
+        this.org = 0;
         instructions = instructions.replace("\r\n", "\n");
         instructions = instructions.replace("\r", "\n");
         instructions = instructions.replace(/\t+/g, " ");
+        instructions = instructions.replace(/(\/.*)/g, "");
         var lines = instructions.split("\n");
         lines.forEach(function (line, index) {
             line = line.trim();
@@ -149,8 +151,8 @@ var MarieInterpreter = (function () {
             ins.push(i);
         });
         if (ins[0] && ins[0].opcode.toUpperCase() == "ORG") {
-            this.instructions.splice(0, 1);
             this.org = Number(ins[0].param);
+            ins.splice(0, 1);
             this.ProgramCounter = this.org;
         }
         return ins;
@@ -158,21 +160,22 @@ var MarieInterpreter = (function () {
     MarieInterpreter.prototype.fillMemory = function (instructions) {
         var memory = new Int16Array(1 << 11);
         for (var i = this.org; i < instructions.length + this.org; i++) {
-            if (instructions[i].opcode == Opcode.DEC) {
-                memory[i] = parseInt("" + instructions[i].param, 10) & 0xFFFF;
+            var index = i - this.org;
+            if (instructions[index].opcode == Opcode.DEC) {
+                memory[i] = parseInt("" + instructions[index].param, 10) & 0xFFFF;
             }
-            else if (instructions[i].opcode == Opcode.HEX) {
-                memory[i] = parseInt("" + instructions[i].param, 16) & 0xFFFF;
+            else if (instructions[index].opcode == Opcode.HEX) {
+                memory[i] = parseInt("" + instructions[index].param, 16) & 0xFFFF;
             }
-            else if (instructions[i].opcode == Opcode.SKIPCOND) {
-                memory[i] = (instructions[i].opcode & 0xF) << 12;
-                memory[i] |= parseInt("" + instructions[i].param, 16) & 0x0FFF;
+            else if (instructions[index].opcode == Opcode.SKIPCOND) {
+                memory[i] = (instructions[index].opcode & 0xF) << 12;
+                memory[i] |= parseInt("" + instructions[index].param, 16) & 0x0FFF;
             }
             else {
-                memory[i] = (instructions[i].opcode & 0xF) << 12;
-                memory[i] |= instructions[i].param & 0x0FFF;
+                memory[i] = (instructions[index].opcode & 0xF) << 12;
+                memory[i] |= instructions[index].param & 0x0FFF;
             }
-            this.IRToLine[memory[i]] = this.instructions[i].linenumber;
+            this.IRToLine[memory[i]] = this.instructions[index].linenumber;
         }
         return memory;
     };
@@ -218,6 +221,14 @@ var MarieInterpreter = (function () {
             this.onExecutionResumed();
         this.run();
     };
+    MarieInterpreter.prototype.clampValues = function () {
+        this.Accumulator &= 0xFFFF;
+        this.MemoryBufferRegister &= 0xFFFF;
+        this.MemoryAddressRegister &= 0xFFFF;
+        this.ProgramCounter &= 0xFFFF;
+        this.Input &= 0xFFFF;
+        this.InstructionRegister &= 0xFFFF;
+    };
     MarieInterpreter.prototype.step = function () {
         // console.log(this.isRunning, this.isFinishedExecuting, this.isWaitingOnInput);
         if (!this.isWaitingOnInput && !this.isFinishedExecuting) {
@@ -225,6 +236,7 @@ var MarieInterpreter = (function () {
             this.InstructionRegister = this.memory[this.MemoryAddressRegister];
             this.ProgramCounter++;
             this.interpret();
+            this.clampValues();
             if (this.onTick)
                 this.onTick();
         }
@@ -330,4 +342,4 @@ var MarieInterpreter = (function () {
         }
     };
     return MarieInterpreter;
-})();
+}());

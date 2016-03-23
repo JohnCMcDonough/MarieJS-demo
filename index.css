@@ -29,6 +29,10 @@ div.mariejs-editor > .panel .textarea {
 	height: 66.67px;
 }
 
+.comment {
+    color: green;
+}
+
 .line-error{
 	border-bottom: dotted 1px red !important;
 }

@@ -36,6 +36,16 @@ var MainController = (function () {
         this.$scope.$watch('mc.cpuFreq', freqToPeriod);
         freqToPeriod();
     }
+    MainController.prototype.markComments = function () {
+        var _this = this;
+        this.editor.getDoc().eachLine(function (line) {
+            var commentBeginsAt = line.text.indexOf("/");
+            var lineNum = _this.editor.getDoc().getLineNumber(line);
+            if (commentBeginsAt == -1)
+                return;
+            _this.editor.getDoc().markText({ line: lineNum, ch: commentBeginsAt }, { line: lineNum, ch: line.text.length }, { className: "comment" });
+        });
+    };
     MainController.prototype.lintCode = function () {
         var _this = this;
         if (this.editor) {
@@ -48,6 +58,7 @@ var MainController = (function () {
             this.interpreter.pauseExecution();
         }
         try {
+            this.markComments();
             this.interpreter.lint(this.code);
             this.interpreter.onFinishedCompile = function () {
                 _this.editor.setOption("readOnly", false);
@@ -85,21 +96,24 @@ var MainController = (function () {
             };
         }
         catch (err) {
-            this.codeErrors = err.map(function (err) {
-                err.lineNumber--;
-                var eString = "Error on Line 0x" + err.lineNumber.toString(16) + ": " + err.errorstring;
-                _this.objectError = (err).object;
-                if (_this.editor) {
-                    var line = _this.editor.getDoc().getLine(err.lineNumber);
-                    var char = line.indexOf(_this.objectError);
-                    if (char != -1)
-                        _this.editor.getDoc().markText({ line: err.lineNumber, ch: char }, { line: err.lineNumber, ch: char + _this.objectError.length }, { className: "line-error" });
-                    else {
-                        _this.editor.getDoc().markText({ line: err.lineNumber, ch: 0 }, { line: err.lineNumber, ch: line.length }, { className: "line-error" });
+            if (err.map)
+                this.codeErrors = err.map(function (err) {
+                    err.lineNumber--;
+                    var eString = "Error on Line 0x" + err.lineNumber.toString(16) + ": " + err.errorstring;
+                    _this.objectError = (err).object;
+                    if (_this.editor) {
+                        var line = _this.editor.getDoc().getLine(err.lineNumber);
+                        var char = line.indexOf(_this.objectError);
+                        if (char != -1)
+                            _this.editor.getDoc().markText({ line: err.lineNumber, ch: char }, { line: err.lineNumber, ch: char + _this.objectError.length }, { className: "line-error" });
+                        else {
+                            _this.editor.getDoc().markText({ line: err.lineNumber, ch: 0 }, { line: err.lineNumber, ch: line.length }, { className: "line-error" });
+                        }
                     }
-                }
-                return eString;
-            });
+                    return eString;
+                });
+            else
+                console.log(err);
         }
         this.safeApply();
     };
@@ -130,6 +144,7 @@ var MainController = (function () {
         this.editor = editor;
         this.editor.on("gutterClick", this.codeEditorGutterClick.bind(this));
         this.editor.on("change", this.rebuildBreakPoints.bind(this));
+        this.editor.on("change", this.markComments.bind(this));
     };
     MainController.prototype.codeEditorGutterClick = function (instance, line, gutter, clickEvent) {
         if (gutter == "CodeMirror-linenumbers")
@@ -171,7 +186,7 @@ var MainController = (function () {
     ;
     MainController.$inject = ["$scope", "$rootScope"];
     return MainController;
-})();
+}());
 app.controller("MainController", MainController);
 app.directive('ngAllowTab', function () {
     return function (scope, element, attrs) {
@@ -240,6 +255,7 @@ app.filter('padHex', function () { return function (x, padSize) {
         r += "0";
     return r + x;
 }; });
+app.filter("toDec", function () { return function (num) { return num >> 15 ? 0xFFFFFFFFFFFF0000 | (num & 0xFFFF) : num; }; });
 app.filter('numberArrayToString', function () { return function (x) { return x && x.map(function (v) { return String.fromCharCode(v); }).join(""); }; });
-app.filter('numberArrayToHex', ["$filter", function ($filter) { return function (x) { return x && x.map(function (v) { return "0x" + $filter("toHex")(v); }).join(); }; }]);
-app.filter('numberArrayToDecimal', function () { return function (x) { return x && x.join(); }; });
+app.filter('numberArrayToHex', ["$filter", function ($filter) { return function (x) { x && x.map(function (v) { return "0x" + $filter("toHex")(v); }).join(); }; }]);
+app.filter('numberArrayToDecimal', ["$filter", function ($filter) { return function (x) { return x && x.map(function (dec) { return $filter("toDec")(dec); }).join(); }; }]);
