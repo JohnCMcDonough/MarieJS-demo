@@ -56,21 +56,22 @@ var MainController = (function () {
                 _this.editor.refresh();
             };
             this.interpreter.onTick = function () {
-                _this.editor.setOption("readOnly", "nocursor");
-                _this.editor.refresh();
                 _this.instructionsCount++;
-                if (_this.debounceTimer) {
-                    clearTimeout(_this.debounceTimer);
+                if (!_this.debounceTimer) {
+                    _this.debounceTimer = +setTimeout(function () {
+                        _this.safeApply();
+                        var line = _this.interpreter.IRToLine[_this.interpreter.InstructionRegister] - 1;
+                        if (_this.highlightedLine)
+                            _this.editor.removeLineClass(_this.highlightedLine, "background", "active-line");
+                        _this.highlightedLine = _this.editor.addLineClass(line, "background", "active-line");
+                        _this.editor.scrollIntoView({ line: line, ch: 0 }, 100);
+                        _this.$rootScope.$emit("setActiveMemory", _this.interpreter.MemoryAddressRegister, _this.interpreter.ProgramCounter);
+                        _this.debounceTimer = null;
+                    }, 50);
                 }
-                _this.debounceTimer = setTimeout(_this.safeApply.bind(_this), 5);
                 var line = _this.interpreter.IRToLine[_this.interpreter.InstructionRegister] - 1;
-                if (_this.highlightedLine)
-                    _this.editor.removeLineClass(_this.highlightedLine, "background", "active-line");
-                _this.highlightedLine = _this.editor.addLineClass(line, "background", "active-line");
-                _this.editor.scrollIntoView({ line: line, ch: 0 }, 100);
                 if (_this.breakpoints[line])
                     _this.interpreter.pauseExecution();
-                _this.$rootScope.$emit("setActiveMemory", _this.interpreter.MemoryAddressRegister, _this.interpreter.ProgramCounter);
             };
             this.interpreter.onOutput = function () {
                 // this.safeApply();
@@ -120,6 +121,8 @@ var MainController = (function () {
             }
             else {
                 this.interpreter.resumeExecution();
+                this.editor.setOption("readOnly", "nocursor");
+                this.editor.refresh();
             }
         }
     };
