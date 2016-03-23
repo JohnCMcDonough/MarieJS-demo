@@ -12,26 +12,29 @@ var MainController = (function () {
         this.viewType = "HEX";
         this.debounceTimer = 0;
         this.instructionsCount = 0;
-        this.editorOptions = {
+        this.defaultEditorOptions = {
             lineWrapping: true,
             lineNumbers: true,
             readOnly: false,
-            gutters: ['note-gutter'],
+            gutters: ['breakpoint-gutter'],
             firstLineNumber: 0,
             lineNumberFormatter: function (ln) { return "0x" + ln.toString(16); }
         };
         this.lintTimeout = 0;
         this.cpuFreq = 500;
+        this.breakpoints = [];
         $scope['mc'] = this;
         this.$scope['codemirrorLoaded'] = this.codemirrorLoaded.bind(this);
         this.$scope.$watch('mc.code', function () {
             clearTimeout(_this.lintTimeout);
             _this.lintTimeout = setTimeout(_this.lintCode.bind(_this), 500);
         });
-        this.$scope.$watch('mc.cpuFreq', function () {
-            _this.interpreter.delayInMS = 1000 / _this.cpuFreq;
-        });
-        this.interpreter.delayInMS = 1000 / this.cpuFreq;
+        var freqToPeriod = function () {
+            var EXP_GAIN = 1 / 10;
+            _this.interpreter.delayInMS = 1000 * Math.pow(Math.E, -.005 * _this.cpuFreq);
+        };
+        this.$scope.$watch('mc.cpuFreq', freqToPeriod);
+        freqToPeriod();
     }
     MainController.prototype.lintCode = function () {
         var _this = this;
@@ -46,7 +49,13 @@ var MainController = (function () {
         }
         try {
             this.interpreter.lint(this.code);
+            this.interpreter.onFinishedCompile = function () {
+                _this.editor.setOption("readOnly", false);
+                _this.editor.refresh();
+            };
             this.interpreter.onTick = function () {
+                _this.editor.setOption("readOnly", "nocursor");
+                _this.editor.refresh();
                 _this.instructionsCount++;
                 if (_this.debounceTimer) {
                     clearTimeout(_this.debounceTimer);
@@ -56,6 +65,8 @@ var MainController = (function () {
                 if (_this.highlightedLine)
                     _this.editor.removeLineClass(_this.highlightedLine, "background", "active-line");
                 _this.highlightedLine = _this.editor.addLineClass(line, "background", "active-line");
+                if (_this.breakpoints[line])
+                    _this.interpreter.pauseExecution();
             };
             this.interpreter.onOutput = function () {
                 // this.safeApply();
@@ -65,6 +76,7 @@ var MainController = (function () {
             };
             this.interpreter.onExecutionFinished = function () {
                 console.info(_this.interpreter.outputBuffer);
+                _this.defaultEditorOptions.readOnly = false;
             };
         }
         catch (err) {
@@ -92,6 +104,7 @@ var MainController = (function () {
             this.editor.removeLineClass(this.highlightedLine, "background", "active-line");
         if (this.codeErrors.length == 0) {
             this.interpreter.performFullCompile(this.code);
+            this.clean = true;
         }
     };
     MainController.prototype.playPause = function () {
@@ -109,9 +122,33 @@ var MainController = (function () {
     };
     MainController.prototype.codemirrorLoaded = function (editor) {
         this.editor = editor;
-        if (!editor.options.gutters)
-            editor.gutters = [];
-        editor.options.gutters.push("note-gutter");
+        this.editor.on("gutterClick", this.codeEditorGutterClick.bind(this));
+        this.editor.on("change", this.rebuildBreakPoints.bind(this));
+    };
+    MainController.prototype.codeEditorGutterClick = function (instance, line, gutter, clickEvent) {
+        // console.log("GUTTER CLICK!", this.breakpoints);
+        if (!this.breakpoints[line]) {
+            var icon = document.createElement("i");
+            icon.innerHTML = "-";
+            instance.setGutterMarker(line, gutter, icon);
+            this.breakpoints[line] = true;
+        }
+        else {
+            instance.setGutterMarker(line, gutter, undefined);
+            this.breakpoints[line] = false;
+        }
+    };
+    MainController.prototype.rebuildBreakPoints = function () {
+        var _this = this;
+        this.breakpoints = [];
+        var lineNum = 0;
+        this.editor.getDoc().eachLine(function (l) {
+            if (_this.editor.lineInfo(l)['gutterMarkers'] && _this.editor.lineInfo(l)['gutterMarkers']['breakpoint-gutter']) {
+                _this.breakpoints[lineNum] = true;
+            }
+            // console.log(lineNum, l, this.editor.lineInfo(l), this.breakpoints[lineNum])
+            lineNum++;
+        });
     };
     MainController.prototype.safeApply = function (fn) {
         var phase = this.$scope.$root.$$phase;

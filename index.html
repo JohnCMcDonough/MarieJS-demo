@@ -20,7 +20,7 @@
 				<div class="col-sm-6 mariejs-editor">
 					<div class="panel panel-primary">
 						<div class="panel-heading">Editor</div>
-						<textarea ui-codemirror="{ onLoad : codemirrorLoaded }" ui-codemirror-opts="mc.editorOptions" ng-allow-tab spellcheck="false"
+						<textarea class="textarea" ui-codemirror="{ onLoad : codemirrorLoaded }" ui-codemirror-opts="mc.defaultEditorOptions" ng-allow-tab spellcheck="false"
 						ng-model="mc.code"></textarea>
 						<div class="panel-footer clearfix">
 							<button class="btn btn-sm btn-primary pull-right" ng-click="mc.assemble()" ng-disabled="mc.codeErrors.length">Assemble</button>
@@ -39,6 +39,7 @@
 								<i class="fa fa-repeat" ng-if="!mc.interpreter.isRunning && mc.interpreter.isFinishedExecuting"></i>
 							</button>
 							<button class="btn btn-default" ng-click="mc.interpreter.step()" ng-disabled="mc.interpreter.isFinishedExecuting"><i class="fa fa-step-forward"></i></button>
+							{{mc.interpreter.delayInMS}}
 							<div style="display:inline-block;margin-top:5px" class="pull-right">
 								<b>Clock Frequency:</b> 1Hz <input style="width:100px;display:inline;top:3px;position:relative" type="range" min="1" max="1000" step="20" ng-model="mc.cpuFreq" /> 1kHz
 							</div>

@@ -1,7 +1,7 @@
 div.mariejs-row {
 	margin-top:15px;
 }
-div.mariejs-editor > .panel textarea {
+div.mariejs-editor > .panel .textarea {
 	min-height: 800px;
 	width: 100%;
 	resize: vertical;
@@ -29,10 +29,17 @@ div.mariejs-editor > .panel textarea {
 	border-bottom: dotted 1px red !important;
 }
 
+.breakpoint-gutter {
+	width: 15px;
+}
+
 .active-line {
     background-color: yellow !important;
 }
 
+.CodeMirror {
+	height: 802.5px;
+}
 
 .mariejs-memoryTable, .mariejs-memoryTable table {
 	width: 100%;
