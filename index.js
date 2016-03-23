@@ -51,6 +51,8 @@ var MainController = (function () {
             this.interpreter.lint(this.code);
             this.interpreter.onFinishedCompile = function () {
                 _this.editor.setOption("readOnly", false);
+                _this.$rootScope.$emit("setActiveMemory", -1, -1);
+                _this.$rootScope.$emit("memoryUpdate", -1);
                 _this.editor.refresh();
             };
             this.interpreter.onTick = function () {
@@ -65,8 +67,10 @@ var MainController = (function () {
                 if (_this.highlightedLine)
                     _this.editor.removeLineClass(_this.highlightedLine, "background", "active-line");
                 _this.highlightedLine = _this.editor.addLineClass(line, "background", "active-line");
+                _this.editor.scrollIntoView({ line: line, ch: 0 }, 100);
                 if (_this.breakpoints[line])
                     _this.interpreter.pauseExecution();
+                _this.$rootScope.$emit("setActiveMemory", _this.interpreter.MemoryAddressRegister, _this.interpreter.ProgramCounter);
             };
             this.interpreter.onOutput = function () {
                 // this.safeApply();
@@ -104,7 +108,6 @@ var MainController = (function () {
             this.editor.removeLineClass(this.highlightedLine, "background", "active-line");
         if (this.codeErrors.length == 0) {
             this.interpreter.performFullCompile(this.code);
-            this.clean = true;
         }
     };
     MainController.prototype.playPause = function () {
@@ -126,10 +129,11 @@ var MainController = (function () {
         this.editor.on("change", this.rebuildBreakPoints.bind(this));
     };
     MainController.prototype.codeEditorGutterClick = function (instance, line, gutter, clickEvent) {
-        // console.log("GUTTER CLICK!", this.breakpoints);
+        if (gutter == "CodeMirror-linenumbers")
+            return;
         if (!this.breakpoints[line]) {
             var icon = document.createElement("i");
-            icon.innerHTML = "-";
+            icon.innerHTML = '<div style="padding: 2px 0 0 4px"><i class="fa fa-circle text-danger"></i></div>';
             instance.setGutterMarker(line, gutter, icon);
             this.breakpoints[line] = true;
         }
@@ -188,9 +192,11 @@ app.directive('memoryTable', function () {
             memory: '=',
             viewtype: "="
         },
-        template: "\n\t\t<div class=\"mariejs-memoryTable\">\n\t\t\t<table class=\"header\">\n\t\t\t\t<thead>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<th></th>\n\t\t\t\t\t\t<th ng-repeat=\"col in cols\">+{{col | toHex}}</th>\n\t\t\t\t\t</tr>\n\t\t\t\t</thead>\n\t\t\t</table>\n\t\t\t<div class=\"scrollable\">\n\t\t\t\t<table class=\"table-striped\">\n\t\t\t\t\t<tbody>\n\t\t\t\t\t\t<tr ng-repeat=\"row in rows\">\n\t\t\t\t\t\t\t<th>{{row | toHex | padHex:3}}</th>\n\t\t\t\t\t\t\t<td ng-repeat=\"col in cols\" ng-class=\"{flash:onChange[row+col]}\">\n\t\t\t\t\t\t\t\t<span ng-show=\"viewtype == 'HEX'\">{{memory[row + col] | toHex | padHex:4}}</span>\n\t\t\t\t\t\t\t\t<span ng-show=\"viewtype == 'ASCII'\">{{memory[row + col] | toASCII}}</span>\n\t\t\t\t\t\t\t\t<span ng-show=\"viewtype == 'DEC'\">{{memory[row + col]}}</span>\n\t\t\t\t\t\t\t</td>\n\t\t\t\t\t\t</tr>\n\t\t\t\t\t</tbody>\n\t\t\t\t</table>\n\t\t\t</div>\n\t\t</div>",
+        template: "\n\t\t<div class=\"mariejs-memoryTable\">\n\t\t\t<table class=\"header\">\n\t\t\t\t<thead>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<th></th>\n\t\t\t\t\t\t<th ng-repeat=\"col in cols\">+{{col | toHex}}</th>\n\t\t\t\t\t</tr>\n\t\t\t\t</thead>\n\t\t\t</table>\n\t\t\t<div class=\"scrollable\">\n\t\t\t\t<table class=\"table-striped\">\n\t\t\t\t\t<tbody>\n\t\t\t\t\t\t<tr ng-repeat=\"row in rows\">\n\t\t\t\t\t\t\t<th>{{row | toHex | padHex:3}}</th>\n\t\t\t\t\t\t\t<td ng-repeat=\"col in cols\" ng-class=\"{flash:WRITE == row+col,green:MAR == col + row,red:PC == col + row}\">\n\t\t\t\t\t\t\t\t<span ng-show=\"viewtype == 'HEX'\">{{memory[row + col] | toHex | padHex:4}}</span>\n\t\t\t\t\t\t\t\t<span ng-show=\"viewtype == 'ASCII'\">{{memory[row + col] | toASCII}}</span>\n\t\t\t\t\t\t\t\t<span ng-show=\"viewtype == 'DEC'\">{{memory[row + col]}}</span>\n\t\t\t\t\t\t\t</td>\n\t\t\t\t\t\t</tr>\n\t\t\t\t\t</tbody>\n\t\t\t\t</table>\n\t\t\t</div>\n\t\t</div>",
         controller: ["$scope", "$rootScope", function ($scope, $rootScope) {
-                $scope['onChange'] = {};
+                $scope['WRITE'] = -1;
+                $scope['MAR'] = -1;
+                $scope['PC'] = -1;
                 function fillMemory() {
                     if (!$scope['memory']) {
                         $scope['memory'] = new Int16Array(2048);
@@ -206,11 +212,11 @@ app.directive('memoryTable', function () {
                 }
                 fillMemory();
                 $rootScope.$on('memoryUpdate', function (e, address, newValue) {
-                    $scope['onChange'][address] = true;
-                    setTimeout(function () {
-                        $scope['onChange'][address] = false;
-                        $scope.$apply();
-                    }, 50);
+                    $scope['WRITE'] = address;
+                });
+                $rootScope.$on('setActiveMemory', function (e, MAR, PC) {
+                    $scope['MAR'] = MAR;
+                    $scope['PC'] = PC;
                 });
             }]
     };
@@ -232,3 +238,5 @@ app.filter('padHex', function () { return function (x, padSize) {
     return r + x;
 }; });
 app.filter('numberArrayToString', function () { return function (x) { return x && x.map(function (v) { return String.fromCharCode(v); }).join(""); }; });
+app.filter('numberArrayToHex', ["$filter", function ($filter) { return function (x) { return x && x.map(function (v) { return "0x" + $filter("toHex")(v); }).join(); }; }]);
+app.filter('numberArrayToDecimal', function () { return function (x) { return x && x.join(); }; });

@@ -25,8 +25,26 @@ div.mariejs-editor > .panel .textarea {
 	height: 160px;
 }
 
+.mariejs-registers-output-buffer {
+	height: 66.67px;
+}
+
 .line-error{
 	border-bottom: dotted 1px red !important;
+}
+
+.keydiv {
+	display: inline-block;
+	padding: 1px 5px 0 0;
+}
+
+.green {
+	background-color: #dff0d8;
+	color: black;
+}
+.red {
+	background-color: #f2dede;
+	color: black;
 }
 
 .breakpoint-gutter {
@@ -56,9 +74,10 @@ div.mariejs-editor > .panel .textarea {
 	width: calc(100% / 17);
 }
 
-.mariejs-memoryTable td.flash {
-	background-color: yellow;
-	font-weight: bold;
+.flash {
+	background-color: #fcf8e3;
+	/*font-weight: bold;*/
+	color: black;
 }
 
 .mariejs-memoryTable .scrollable {
