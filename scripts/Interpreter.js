@@ -223,11 +223,11 @@ var MarieInterpreter = (function () {
     };
     MarieInterpreter.prototype.clampValues = function () {
         this.Accumulator &= 0xFFFF;
-        this.MemoryBufferRegister &= 0xFFFF;
-        this.MemoryAddressRegister &= 0xFFFF;
-        this.ProgramCounter &= 0xFFFF;
-        this.Input &= 0xFFFF;
-        this.InstructionRegister &= 0xFFFF;
+        // this.MemoryBufferRegister &= 0xFFFF;
+        // this.MemoryAddressRegister &= 0xFFFF;
+        // this.ProgramCounter &= 0xFFFF;
+        // this.Input &= 0xFFFF;
+        // this.InstructionRegister &= 0xFFFF;
     };
     MarieInterpreter.prototype.step = function () {
         // console.log(this.isRunning, this.isFinishedExecuting, this.isWaitingOnInput);
@@ -235,10 +235,10 @@ var MarieInterpreter = (function () {
             this.MemoryAddressRegister = this.ProgramCounter;
             this.InstructionRegister = this.memory[this.MemoryAddressRegister];
             this.ProgramCounter++;
-            this.interpret();
             this.clampValues();
             if (this.onTick)
                 this.onTick();
+            this.interpret();
         }
     };
     MarieInterpreter.prototype.run = function () {

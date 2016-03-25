@@ -70,13 +70,13 @@ var MainController = (function () {
                 _this.instructionsCount++;
                 if (!_this.debounceTimer) {
                     _this.debounceTimer = +setTimeout(function () {
-                        _this.safeApply();
                         var line = _this.interpreter.IRToLine[_this.interpreter.InstructionRegister] - 1;
                         if (_this.highlightedLine)
                             _this.editor.removeLineClass(_this.highlightedLine, "background", "active-line");
                         _this.highlightedLine = _this.editor.addLineClass(line, "background", "active-line");
                         _this.editor.scrollIntoView({ line: line, ch: 0 }, 100);
                         _this.$rootScope.$emit("setActiveMemory", _this.interpreter.MemoryAddressRegister, _this.interpreter.ProgramCounter);
+                        _this.safeApply();
                         _this.debounceTimer = null;
                     }, 50);
                 }
