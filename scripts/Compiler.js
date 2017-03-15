@@ -23,7 +23,9 @@ var Compiler = (function () {
         var _this = this;
         if (ast === void 0) { ast = this.ast; }
         var instructions;
-        traverse(ast, { pre: function (node, parent) {
+        // get around not having typings for Pure JavaScript traverse function
+        window["traverse"](ast, {
+            pre: function (node, parent) {
                 _this.prepare(node);
                 if (_this[node.type])
                     _this[node.type](node, false);
@@ -34,7 +36,8 @@ var Compiler = (function () {
                     _this[node.type](node, true);
                 if (node == ast)
                     instructions = node.instructions;
-            } });
+            }
+        });
         console.log("vars", this.variables);
         instructions.push({ opcode: "HALT", label: "END_OF_PROGRAM" });
         this.variables.push({ label: "LEFT", opcode: "DEC", param: 0 });
@@ -56,7 +59,7 @@ var Compiler = (function () {
             ins += (i.label ? i.label + "," : "") + "\t";
             ins += i.opcode + "\t";
             if (i.opcode == "DEC" && !i.param)
-                i.param = "0";
+                i.param = +"0";
             ins += (i.param ? i.param : "") + "\t\n";
         });
         return ins;
@@ -65,8 +68,7 @@ var Compiler = (function () {
         switch (operator) {
             case "+": return { opcode: "ADD", param: param };
             case "-": return { opcode: "SUBT", param: param };
-            case "*": throw new Error("Invalid symbol found");
-            case "/": throw new Error("Invalid symbol found");
+            default: throw new Error("Unsupported operator");
         }
     };
     Compiler.prototype.prepare = function (node) {
@@ -235,12 +237,14 @@ var Compiler = (function () {
         var _this = this;
         if (!isExiting) {
             node.toRename = node.toRename || [];
-            traverse(node.body, { pre: function (node2, parent) {
+            window["traverse"](node.body, {
+                pre: function (node2, parent) {
                     if (node2.type == "VariableDeclarator") {
                         node.toRename.push(node2.id.name);
                         node2.id.name = node.id.name + "_VAR_" + node2.id.name;
                     }
-                } });
+                }
+            });
         }
         else {
             var paramCount = 0;
@@ -254,7 +258,7 @@ var Compiler = (function () {
                 node.toRename.forEach(function (name) {
                     _this.scopeRename(node.body.instructions, name, node.id.name + "_VAR_" + name);
                 });
-            node.instructions.merge({ opcode: "DEC", param: "0", label: node.id.name });
+            node.instructions.merge({ opcode: "DEC", param: +"0", label: node.id.name });
             node.instructions = node.instructions.merge(node.body.instructions);
             node.instructions.merge({ opcode: "JUMPI", param: node.id.name });
             node.instructions.forEach(function (i) {
@@ -489,8 +493,8 @@ var Compiler = (function () {
             { opcode: "LOADI", param: "ARRAY_INDEX" }
         ]);
     };
-    Compiler.SKIP_NEGATIVE = "0";
-    Compiler.SKIP_EQUAL = "400";
-    Compiler.SKIP_POSITIVE = "800";
     return Compiler;
 }());
+Compiler.SKIP_NEGATIVE = "0";
+Compiler.SKIP_EQUAL = "400";
+Compiler.SKIP_POSITIVE = "800";

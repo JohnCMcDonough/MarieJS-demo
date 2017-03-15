@@ -11,6 +11,19 @@
     <link rel="stylesheet" type="text/css" href="bower_components/codemirror/lib/codemirror.css">
     <link rel="stylesheet" href="assets/bootstrap.lumen.min.css">
     <link rel="stylesheet" href="index.css">
+
+    <script>
+        (function (i, s, o, g, r, a, m) {
+        i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+            (i[r].q = i[r].q || []).push(arguments)
+        }, i[r].l = 1 * new Date(); a = s.createElement(o),
+            m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
+        })(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+
+        ga('create', 'UA-93809806-1', 'auto');
+        ga('send', 'pageview');
+
+    </script>
 </head>
 
 <body ng-app="mariejs">
@@ -40,7 +53,7 @@
                                 <i class="fa fa-pause" ng-if="mc.interpreter.isRunning"></i>
                                 <i class="fa fa-repeat" ng-if="!mc.interpreter.isRunning && mc.interpreter.isFinishedExecuting"></i>
                             </button>
-                            <button class="btn btn-default" ng-click="mc.interpreter.step()" ng-disabled="mc.interpreter.isFinishedExecuting"><i class="fa fa-step-forward"></i></button>
+                            <button class="btn btn-default" ng-click="mc.step()" ng-disabled="mc.interpreter.isFinishedExecuting"><i class="fa fa-step-forward"></i></button>
                             <div style="display:inline-block;margin-top:5px" class="pull-right">
                                 <b>Clock Frequency:</b> 1Hz
                                 <input style="width:100px;display:inline;top:3px;position:relative" type="range" min="1" max="1000" step="20" ng-model="mc.cpuFreq"
@@ -48,7 +61,7 @@
                             </div>
                             <div style="display:inline-block;margin-top:5px" class="pull-right">
                                 <b>Slow UI Updates</b>
-                                <input style="width:100px;display:inline;top:3px;position:relative" type="checkbox" ng-model="mc.slowUI"/>
+                                <input style="width:100px;display:inline;top:3px;position:relative" type="checkbox" ng-model="mc.slowUI" />
                             </div>
                             <!-- TODO: http://seiyria.com/bootstrap-slider/ -->
                         </div>
@@ -123,7 +136,7 @@
     <script type="text/javascript" src="bower_components/angular-ui-codemirror/ui-codemirror.min.js"></script>
     <script type="text/javascript" src="bower_components/codemirror/mode/javascript/javascript.js"></script>
     <script src="scripts/Interpreter.js"></script>
-    <script src="scripts/node_modules/esprima/esprima.js"></script>
+    <script src="scripts/node_modules/esprima/dist/esprima.js"></script>
     <script src="scripts/node_modules/ast-traverse/ast-traverse.js"></script>
     <script src="scripts/Compiler.js"></script>
     <script src="index.js"></script>
